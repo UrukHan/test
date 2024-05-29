@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: your_user
+      POSTGRES_PASSWORD: your_password
+      POSTGRES_DB: transactions
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+    ports:
+      - "8080:80"
+    depends_on:
+      - postgres
+
+  app:
+    build: .
+    container_name: transaction_service
+    environment:
+      DATABASE_URI: postgresql://your_user:your_password@postgres:5432/transactions
+    depends_on:
+      - postgres
+    ports:
+      - "8000:8000"
+    command: >
+      sh -c "
+      python create_tables.py &&
+      wait-for-it postgres:5432 -- python -m app.__main__ &
+      wait-for-it localhost:8000 -- pytest
+      "
+
+volumes:
+  postgres_data:
